@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Release 모드용 AdWhale SDK 키값 -->
+    <string name="adwhale_publisher_uid">MD1718693992449</string>
+    <string name="adwhale_admob_app_id">ca-app-pub-2626235926542867~4895401558</string>
+</resources>
