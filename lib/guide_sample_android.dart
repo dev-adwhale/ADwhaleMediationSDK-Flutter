@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:adwhale_sdk_flutter/adwhale_sdk_flutter.dart';
 
-class GuideSamplePage extends StatefulWidget {
-  const GuideSamplePage({super.key});
+class GuideSampleAndroidPage extends StatefulWidget {
+  const GuideSampleAndroidPage({super.key});
 
   @override
-  State<GuideSamplePage> createState() => _GuideSamplePageState();
+  State<GuideSampleAndroidPage> createState() => _GuideSampleAndroidPageState();
 }
 
-class _GuideSamplePageState extends State<GuideSamplePage> {
+class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
   bool _isCoppa = false;
   bool _isLoggerOn = false;
 
-  int _selectedAdType =
-      0; // 0: 배너, 1: 전면, 2: 보상형전면, 3: 네이티브(템플릿), 4: 네이티브(커스텀), 5: 앱 오프닝
+  int _selectedAdType = 0; // 0: 배너, 1: 전면, 2: 보상형전면, 3: 네이티브(템플릿), 4: 네이티브(커스텀), 5: 앱 오프닝
   int _selectedBannerSize = 0;
 
   AdWhaleAdView? _adWhaleAdView;
@@ -45,17 +45,19 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
   AdWhaleNativeAd? _adWhaleNativeAd;
   bool _nativeLoaded = false;
   bool _nativeShown = false;
+  double? _nativeHeight;
+  StreamSubscription<int>? _nativeHeightSub;
 
   @override
   void initState() {
     super.initState();
     _placementUidByType.addAll(<int, String>{
-      0: "placement Uid 를 발급받으세요", // 배너
-      1: "placement Uid 를 발급받으세요", // 전면
-      2: "placement Uid 를 발급받으세요", // 보상형전면
-      3: "placement Uid 를 발급받으세요", // 네이티브(템플릿)
-      4: "placement Uid 를 발급받으세요", // 네이티브(커스텀)
-      5: "placement Uid 를 발급받으세요", // 앱 오프닝
+      0: 'placement Uid 를 발급받으세요', // 배너
+      1: 'placement Uid 를 발급받으세요', // 전면
+      2: 'placement Uid 를 발급받으세요', // 보상형전면
+      3: 'placement Uid 를 발급받으세요', // 네이티브(템플릿)
+      4: 'placement Uid 를 발급받으세요', // 네이티브(커스텀)
+      5: 'placement Uid 를 발급받으세요', // 앱 오프닝
     });
     _placementUidController.text = _placementUidByType[_selectedAdType] ?? '';
   }
@@ -77,15 +79,21 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
   }
 
   double _nativeAdHeightForCurrent() {
+    final h = _nativeHeight;
     if (_selectedAdType == 4) {
-      // 네이티브 커스텀 광고 기본 높이
+      if (h != null) {
+        return h.clamp(360, 2200).toDouble();
+      }
       return 720;
     }
 
+
     switch (_selectedTemplateSize) {
       case AdWhaleNativeTemplate.small:
+        if (h != null) return h.clamp(220, 900).toDouble();
         return 320;
       case AdWhaleNativeTemplate.medium:
+        if (h != null) return h.clamp(340, 1300).toDouble();
         return 520;
       case AdWhaleNativeTemplate.fullscreen:
         return 0;
@@ -128,23 +136,6 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
                         },
                       ),
                       const SizedBox(width: 8),
-                      // CHECK 버튼: getAdwhaleGDPR() 호출 후 결과 확인용
-                      _purpleSmallButton(
-                        'CHECK',
-                        onPressed: () async {
-                          final consent = await AdWhaleMediationAds.instance
-                              .getAdwhaleGDPR();
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'GDPR 동의 상태: ${consent ? 'TRUE' : 'FALSE'}',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 8),
                       _purpleSmallButton(
                         'RESET',
                         onPressed: () async {
@@ -153,33 +144,6 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
                               .resetGdprConsentStatus();
                         },
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // SINGLE GDPR TRUE / FALSE
-                  Row(
-                    children: [
-                      _purpleSmallButton(
-                        'SINGLE GDPR TRUE',
-                        onPressed: () async {
-                          // single gdpr true: setGdpr(true)
-                          await AdWhaleMediationAds.instance.setGdpr(true);
-                        },
-                      ),
-                      const SizedBox(width: 16),
-                      _purpleSmallButton(
-                        'SINGLE GDPR FALSE',
-                        onPressed: () async {
-                          // single gdpr false: setGdpr(false)
-                          await AdWhaleMediationAds.instance.setGdpr(false);
-                        },
-                      ),
-                      // const Spacer(),
-                      // _purpleSmallButton(
-                      //   'ADMOB AD INSPECTOR',
-                      //   onPressed: () {
-                      //   },
-                      // ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -307,7 +271,7 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
                               ChoiceChip(
                                 label: const Text('Small'),
                                 selected:
-                                    _selectedTemplateSize ==
+                                _selectedTemplateSize ==
                                     AdWhaleNativeTemplate.small,
                                 onSelected: (_) {
                                   setState(() {
@@ -319,7 +283,7 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
                               ChoiceChip(
                                 label: const Text('Medium'),
                                 selected:
-                                    _selectedTemplateSize ==
+                                _selectedTemplateSize ==
                                     AdWhaleNativeTemplate.medium,
                                 onSelected: (_) {
                                   setState(() {
@@ -331,7 +295,7 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
                               ChoiceChip(
                                 label: const Text('Fullscreen'),
                                 selected:
-                                    _selectedTemplateSize ==
+                                _selectedTemplateSize ==
                                     AdWhaleNativeTemplate.fullscreen,
                                 onSelected: (_) {
                                   setState(() {
@@ -356,31 +320,31 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: _selectedAdType == 0
                         ? [
-                            _purpleButton(
-                              '광고 로드',
-                              onPressed: _onBannerLoadPressed,
-                            ),
-                            _purpleButton(
-                              '뷰 초기화',
-                              onPressed: _onClearAdsPressed,
-                            ),
-                            _purpleButton('복사', onPressed: () {}),
-                          ]
+                      _purpleButton(
+                        '광고 로드',
+                        onPressed: _onBannerLoadPressed,
+                      ),
+                      _purpleButton(
+                        '뷰 초기화',
+                        onPressed: _onClearAdsPressed,
+                      ),
+                      _purpleButton('복사', onPressed: () {}),
+                    ]
                         : [
-                            _purpleButton(
-                              '광고 로드',
-                              onPressed: _onLoadNonBannerPressed,
-                            ),
-                            _purpleButton(
-                              '광고 표시',
-                              onPressed: _onShowNonBannerPressed,
-                            ),
-                            _purpleButton(
-                              '뷰 초기화',
-                              onPressed: _onClearAdsPressed,
-                            ),
-                            _purpleButton('복사', onPressed: () {}),
-                          ],
+                      _purpleButton(
+                        '광고 로드',
+                        onPressed: _onLoadNonBannerPressed,
+                      ),
+                      _purpleButton(
+                        '광고 표시',
+                        onPressed: _onShowNonBannerPressed,
+                      ),
+                      _purpleButton(
+                        '뷰 초기화',
+                        onPressed: _onClearAdsPressed,
+                      ),
+                      _purpleButton('복사', onPressed: () {}),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   const TextField(
@@ -427,21 +391,21 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
             alignment: Alignment.center,
             child: _adWhaleAdView == null
                 ? const SizedBox(
-                    height: 60,
-                    child: Center(
-                      child: Text(
-                        '여기에 배너 광고가 노출됩니다.',
-                        style: TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  )
+              height: 60,
+              child: Center(
+                child: Text(
+                  '여기에 배너 광고가 노출됩니다.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+            )
                 : SizedBox(
-                    height: _bannerHeightFor(_adWhaleAdView!),
-                    child: AdWhaleAdWidget(
-                      key: ValueKey(_adWhaleAdView!.hashCode),
-                      ad: _adWhaleAdView!,
-                    ),
-                  ),
+              height: _bannerHeightFor(_adWhaleAdView!),
+              child: AdWhaleAdWidget(
+                key: ValueKey(_adWhaleAdView!.hashCode),
+                ad: _adWhaleAdView!,
+              ),
+            ),
           ),
         ],
       ),
@@ -519,37 +483,37 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
 
   void _createBanner(AdWhaleAdSize bannerSize, {int? adaptiveAnchorWidth}) {
     debugPrint(
-      'GuideSamplePage _createBanner size=$bannerSize, adaptiveWidth=$adaptiveAnchorWidth',
+      'GuideSampleAndroidPage _createBanner size=$bannerSize, adaptiveWidth=$adaptiveAnchorWidth',
     );
     _adWhaleAdView =
-        AdWhaleAdView(
-            listener: AdWhaleAdViewListener(
-              onLoaded: (ad) {
-                debugPrint(
-                  'GuideSamplePage BannerAd onLoaded for size $bannerSize',
-                );
-                setState(() {});
-              },
-              onLoadFailed: (ad, errorCode, errorMessage) {
-                debugPrint(
-                  'GuideSamplePage BannerAd onLoadFailed for $bannerSize: errorCode: $errorCode, errorMessage: $errorMessage',
-                );
-                ad.destroy();
-                setState(() {
-                  _adWhaleAdView = null;
-                });
-              },
-              onClicked: (ad) {
-                debugPrint(
-                  'GuideSamplePage BannerAd onClicked for size $bannerSize',
-                );
-              },
-            ),
-            adInfo: AdInfo(_currentPlacementUid(), bannerSize),
-          )
-          ..setRegion('서울시 강남구')
-          ..setGcoder(37.5665, 126.9780)
-          ..setPlacementName('guide_banner');
+    AdWhaleAdView(
+      listener: AdWhaleAdViewListener(
+        onLoaded: (ad) {
+          debugPrint(
+            'GuideSampleAndroidPage BannerAd onLoaded for size $bannerSize',
+          );
+          setState(() {});
+        },
+        onLoadFailed: (ad, errorCode, errorMessage) {
+          debugPrint(
+            'GuideSampleAndroidPage BannerAd onLoadFailed for $bannerSize: errorCode: $errorCode, errorMessage: $errorMessage',
+          );
+          ad.destroy();
+          setState(() {
+            _adWhaleAdView = null;
+          });
+        },
+        onClicked: (ad) {
+          debugPrint(
+            'GuideSampleAndroidPage BannerAd onClicked for size $bannerSize',
+          );
+        },
+      ),
+      adInfo: AdInfo.legacy(_currentPlacementUid(), bannerSize),
+    )
+      ..setRegion('서울시 강남구')
+      ..setGcoder(37.5665, 126.9780)
+      ..setPlacementName('guide_banner');
 
     if (adaptiveAnchorWidth != null) {
       _adWhaleAdView!.setAdaptiveAnchorWidth(adaptiveAnchorWidth);
@@ -581,6 +545,7 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
     _adWhaleTemplateNativeAd?.destroy();
     _adWhaleCustomNativeAd?.destroy();
     _adWhaleNativeAd?.destroy();
+    _nativeHeightSub?.cancel();
     _placementUidController.dispose();
     _adaptiveWidthController.dispose();
     super.dispose();
@@ -658,6 +623,9 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
     _adWhaleNativeAd = null;
     _nativeLoaded = false;
     _nativeShown = false;
+    _nativeHeight = null;
+    _nativeHeightSub?.cancel();
+    _nativeHeightSub = null;
 
     setState(() {});
   }
@@ -668,46 +636,46 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
     _isInterstitialLoaded = false;
 
     _interstitialAd =
-        AdWhaleInterstitialAd(
-            appCode: _currentPlacementUid(),
-            adLoadCallback: AdWhaleInterstitialAdLoadCallback(
-              onLoaded: () {
-                debugPrint('GuideSamplePage Interstitial onLoaded');
-                _isInterstitialLoaded = true;
-                if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('전면 광고 로드 완료')));
-                }
-              },
-              onLoadFailed: (errorCode, errorMessage) {
-                debugPrint(
-                  'GuideSamplePage Interstitial onLoadFailed: $errorMessage',
-                );
-                _interstitialAd = null;
-                _isInterstitialLoaded = false;
-              },
-              onShowed: () {
-                debugPrint('GuideSamplePage Interstitial onAdShowed');
-              },
-              onShowFailed: (errorCode, errorMessage) {
-                debugPrint(
-                  'GuideSamplePage Interstitial onAdShowFailed: $errorMessage',
-                );
-                _interstitialAd = null;
-                _isInterstitialLoaded = false;
-              },
-              onClosed: () {
-                debugPrint('GuideSamplePage Interstitial onAdClosed');
-              },
-              onClicked: () {
-                debugPrint('GuideSamplePage Interstitial onClicked');
-              },
-            ),
-          )
-          ..setRegion('서울시 서초구')
-          ..setGcoder(37.49, 127.02)
-          ..setPlacementName('test_interstitial');
+    AdWhaleInterstitialAd(
+      appCode: _currentPlacementUid(),
+      adLoadCallback: AdWhaleInterstitialAdLoadCallback(
+        onLoaded: () {
+          debugPrint('GuideSampleAndroidPage Interstitial onLoaded');
+          _isInterstitialLoaded = true;
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('전면 광고 로드 완료')));
+          }
+        },
+        onLoadFailed: (errorCode, errorMessage) {
+          debugPrint(
+            'GuideSampleAndroidPage Interstitial onLoadFailed: $errorMessage',
+          );
+          _interstitialAd = null;
+          _isInterstitialLoaded = false;
+        },
+        onShowed: () {
+          debugPrint('GuideSampleAndroidPage Interstitial onAdShowed');
+        },
+        onShowFailed: (errorCode, errorMessage) {
+          debugPrint(
+            'GuideSampleAndroidPage Interstitial onAdShowFailed: $errorMessage',
+          );
+          _interstitialAd = null;
+          _isInterstitialLoaded = false;
+        },
+        onClosed: () {
+          debugPrint('GuideSampleAndroidPage Interstitial onAdClosed');
+        },
+        onClicked: () {
+          debugPrint('GuideSampleAndroidPage Interstitial onClicked');
+        },
+      ),
+    )
+      ..setRegion('서울시 서초구')
+      ..setGcoder(37.49, 127.02)
+      ..setPlacementName('test_interstitial');
     _interstitialAd!.loadAd();
   }
 
@@ -731,49 +699,49 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
     _isRewardLoaded = false;
 
     _rewardAd =
-        AdWhaleRewardAd(
-            appCode: _currentPlacementUid(),
-            adRewardLoadCallback: AdWhaleRewardAdLoadCallback(
-              onLoaded: () {
-                debugPrint('GuideSamplePage Reward onLoaded');
-                _isRewardLoaded = true;
-                if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('보상형 광고 로드 완료')));
-                }
-              },
-              onLoadFailed: (errorCode, errorMessage) {
-                debugPrint(
-                  'GuideSamplePage Reward onAdFailedToLoad: errorCode: $errorCode, errorMessage: $errorMessage',
-                );
-                _rewardAd = null;
-                _isRewardLoaded = false;
-              },
-              onUserRewarded: (amount, type) {
-                debugPrint(
-                  'GuideSamplePage Reward onUserRewarded: $amount, $type',
-                );
-              },
-              onClicked: () {
-                debugPrint('GuideSamplePage Reward onClicked');
-              },
-              onShowed: () {
-                debugPrint('GuideSamplePage Reward onAdShowed');
-              },
-              onShowFailed: (String errorCode, String errorMessage) {
-                debugPrint(
-                  'GuideSamplePage Reward onFailedToShow: errorCode: $errorCode, errorMessage: $errorMessage',
-                );
-              },
-              onDismissed: () {
-                debugPrint('GuideSamplePage Reward onDismissed');
-              },
-            ),
-          )
-          ..setRegion('test_reward_region')
-          ..setGcoder(37.5, 126.9)
-          ..setPlacementName('test_reward');
+    AdWhaleRewardAd(
+      appCode: _currentPlacementUid(),
+      adRewardLoadCallback: AdWhaleRewardAdLoadCallback(
+        onLoaded: () {
+          debugPrint('GuideSampleAndroidPage Reward onLoaded');
+          _isRewardLoaded = true;
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('보상형 광고 로드 완료')));
+          }
+        },
+        onLoadFailed: (errorCode, errorMessage) {
+          debugPrint(
+            'GuideSampleAndroidPage Reward onAdFailedToLoad: errorCode: $errorCode, errorMessage: $errorMessage',
+          );
+          _rewardAd = null;
+          _isRewardLoaded = false;
+        },
+        onUserRewarded: (amount, type) {
+          debugPrint(
+            'GuideSampleAndroidPage Reward onUserRewarded: $amount, $type',
+          );
+        },
+        onClicked: () {
+          debugPrint('GuideSampleAndroidPage Reward onClicked');
+        },
+        onShowed: () {
+          debugPrint('GuideSampleAndroidPage Reward onAdShowed');
+        },
+        onShowFailed: (String errorCode, String errorMessage) {
+          debugPrint(
+            'GuideSampleAndroidPage Reward onFailedToShow: errorCode: $errorCode, errorMessage: $errorMessage',
+          );
+        },
+        onDismissed: () {
+          debugPrint('GuideSampleAndroidPage Reward onDismissed');
+        },
+      ),
+    )
+      ..setRegion('test_reward_region')
+      ..setGcoder(37.5, 126.9)
+      ..setPlacementName('test_reward');
     _rewardAd!.loadAd();
   }
 
@@ -797,46 +765,46 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
     _isAppOpenLoaded = false;
 
     _appOpenAd =
-        AdWhaleAppOpenAd(
-            placementUid: _currentPlacementUid(),
-            adLoadCallback: AdWhaleAppOpenAdLoadCallback(
-              onLoaded: () {
-                debugPrint('GuideSamplePage AppOpen onLoaded');
-                _isAppOpenLoaded = true;
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('앱오프닝 광고 로드 완료')),
-                  );
-                }
-              },
-              onLoadFailed: (code, message) {
-                debugPrint(
-                  'GuideSamplePage AppOpen onLoadFailed: $code, $message',
-                );
-                _appOpenAd = null;
-                _isAppOpenLoaded = false;
-              },
-              onShowed: () {
-                debugPrint('GuideSamplePage AppOpen onAdShowed');
-              },
-              onShowFailed: (code, message) {
-                debugPrint(
-                  'GuideSamplePage AppOpen onAdShowFailed: $code, $message',
-                );
-                _appOpenAd = null;
-                _isAppOpenLoaded = false;
-              },
-              onDismissed: () {
-                debugPrint('GuideSamplePage AppOpen onAdDismissed');
-              },
-              onClicked: () {
-                debugPrint('GuideSamplePage AppOpen onClicked');
-              },
-            ),
-          )
-          ..setRegion('서울시 강남구')
-          ..setGcoder(37.5665, 126.9780)
-          ..setPlacementName('test_app_open');
+    AdWhaleAppOpenAd(
+      placementUid: _currentPlacementUid(),
+      adLoadCallback: AdWhaleAppOpenAdLoadCallback(
+        onLoaded: () {
+          debugPrint('GuideSampleAndroidPage AppOpen onLoaded');
+          _isAppOpenLoaded = true;
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('앱오프닝 광고 로드 완료')),
+            );
+          }
+        },
+        onLoadFailed: (code, message) {
+          debugPrint(
+            'GuideSampleAndroidPage AppOpen onLoadFailed: $code, $message',
+          );
+          _appOpenAd = null;
+          _isAppOpenLoaded = false;
+        },
+        onShowed: () {
+          debugPrint('GuideSampleAndroidPage AppOpen onAdShowed');
+        },
+        onShowFailed: (code, message) {
+          debugPrint(
+            'GuideSampleAndroidPage AppOpen onAdShowFailed: $code, $message',
+          );
+          _appOpenAd = null;
+          _isAppOpenLoaded = false;
+        },
+        onDismissed: () {
+          debugPrint('GuideSampleAndroidPage AppOpen onAdDismissed');
+        },
+        onClicked: () {
+          debugPrint('GuideSampleAndroidPage AppOpen onClicked');
+        },
+      ),
+    )
+      ..setRegion('서울시 강남구')
+      ..setGcoder(37.5665, 126.9780)
+      ..setPlacementName('test_app_open');
     _appOpenAd!.loadAd();
   }
 
@@ -864,67 +832,80 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
     _adWhaleNativeAd = null;
     _nativeLoaded = false;
     _nativeShown = false;
+    _nativeHeight = null;
+    _nativeHeightSub?.cancel();
+    _nativeHeightSub = null;
 
     setState(() {
       _nativeShown = false;
+      _nativeHeight = null;
       _nativeLoaded = false;
     });
 
     _adWhaleTemplateNativeAd =
-        AdWhaleNativeTemplateView(
-            placementUid: _currentPlacementUid(),
-            nativeAdLoadCallback: AdWhaleNativeAdLoadCallback(
-              onLoaded: (ad) {
-                debugPrint('GuideSamplePage TemplateNative onLoaded');
-                setState(() {
-                  _isTemplateNativeLoaded = true;
-                  _nativeLoaded = true;
-                });
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('네이티브 템플릿 광고 로드 완료')),
-                  );
-                }
-              },
-              onLoadFailed: (ad, code, message) {
-                debugPrint(
-                  'GuideSamplePage TemplateNative onFailedToLoad: $code, $message',
-                );
-                ad.destroy();
-                setState(() {
-                  _adWhaleTemplateNativeAd = null;
-                  _isTemplateNativeLoaded = false;
-                  _nativeLoaded = false;
-                  _nativeShown = false;
-                });
-              },
-              onShowFailed: (ad, code, message) {
-                debugPrint(
-                  'GuideSamplePage TemplateNative onShowFailed: $code, $message',
-                );
-                ad.destroy();
-                setState(() {
-                  _adWhaleTemplateNativeAd = null;
-                  _isTemplateNativeLoaded = false;
-                  _nativeLoaded = false;
-                  _nativeShown = false;
-                });
-              },
-              onClicked: (ad) {
-                debugPrint('GuideSamplePage TemplateNative onClicked');
-              },
-              onClosed: (ad) {
-                debugPrint('GuideSamplePage TemplateNative onClosed');
-              },
-            ),
-            template: _selectedTemplateSize,
-          )
-          ..setRegion('서울시 구로구')
-          ..setGcoder(37.48, 126.89)
-          ..setPlacementName('test_template_native');
+    AdWhaleNativeTemplateView(
+      placementUid: _currentPlacementUid(),
+      nativeAdLoadCallback: AdWhaleNativeAdLoadCallback(
+        onLoaded: (ad) {
+          debugPrint('GuideSampleAndroidPage TemplateNative onLoaded');
+          setState(() {
+            _isTemplateNativeLoaded = true;
+            _nativeLoaded = true;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('네이티브 템플릿 광고 로드 완료')),
+            );
+          }
+        },
+        onLoadFailed: (ad, code, message) {
+          debugPrint(
+            'GuideSampleAndroidPage TemplateNative onFailedToLoad: $code, $message',
+          );
+          ad.destroy();
+          setState(() {
+            _adWhaleTemplateNativeAd = null;
+            _isTemplateNativeLoaded = false;
+            _nativeLoaded = false;
+            _nativeShown = false;
+            _nativeHeight = null;
+          });
+        },
+        onShowFailed: (ad, code, message) {
+          debugPrint(
+            'GuideSampleAndroidPage TemplateNative onShowFailed: $code, $message',
+          );
+          ad.destroy();
+          setState(() {
+            _adWhaleTemplateNativeAd = null;
+            _isTemplateNativeLoaded = false;
+            _nativeLoaded = false;
+            _nativeShown = false;
+            _nativeHeight = null;
+          });
+        },
+        onClicked: (ad) {
+          debugPrint('GuideSampleAndroidPage TemplateNative onClicked');
+        },
+        onClosed: (ad) {
+          debugPrint('GuideSampleAndroidPage TemplateNative onClosed');
+        },
+      ),
+      template: _selectedTemplateSize,
+    )
+      ..setRegion('서울시 구로구')
+      ..setGcoder(37.48, 126.89)
+      ..setPlacementName('test_template_native');
 
     _adWhaleNativeAd = _adWhaleTemplateNativeAd;
     _nativeLoaded = false;
+
+    _nativeHeightSub = instanceManager.nativeAdHeightStream.listen((int h) {
+      if (!mounted) return;
+      setState(() {
+        _nativeHeight = h.toDouble();
+      });
+    });
 
     _adWhaleTemplateNativeAd!.loadAd();
   }
@@ -955,67 +936,80 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
     _adWhaleNativeAd = null;
     _nativeLoaded = false;
     _nativeShown = false;
+    _nativeHeight = null;
+    _nativeHeightSub?.cancel();
+    _nativeHeightSub = null;
 
     setState(() {
       _nativeShown = false;
+      _nativeHeight = null;
       _nativeLoaded = false;
     });
 
     _adWhaleCustomNativeAd =
-        AdWhaleNativeCustomView(
-            placementUid: _currentPlacementUid(),
-            nativeAdLoadCallback: AdWhaleNativeAdLoadCallback(
-              onLoaded: (ad) {
-                debugPrint('GuideSamplePage CustomNative onLoaded');
-                setState(() {
-                  _isCustomNativeLoaded = true;
-                  _nativeLoaded = true;
-                });
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('네이티브 커스텀 광고 로드 완료')),
-                  );
-                }
-              },
-              onLoadFailed: (ad, code, message) {
-                debugPrint(
-                  'GuideSamplePage CustomNative onFailedToLoad: $code, $message',
-                );
-                ad.destroy();
-                setState(() {
-                  _adWhaleCustomNativeAd = null;
-                  _isCustomNativeLoaded = false;
-                  _nativeLoaded = false;
-                  _nativeShown = false;
-                });
-              },
-              onShowFailed: (ad, code, message) {
-                debugPrint(
-                  'GuideSamplePage CustomNative onShowFailed: $code, $message',
-                );
-                ad.destroy();
-                setState(() {
-                  _adWhaleCustomNativeAd = null;
-                  _isCustomNativeLoaded = false;
-                  _nativeLoaded = false;
-                  _nativeShown = false;
-                });
-              },
-              onClicked: (ad) {
-                debugPrint('GuideSamplePage CustomNative onClicked');
-              },
-              onClosed: (ad) {
-                debugPrint('GuideSamplePage CustomNative onClosed');
-              },
-            ),
-            factoryId: 'app_custom',
-          )
-          ..setRegion('서울시 구로구')
-          ..setGcoder(37.48, 126.89)
-          ..setPlacementName('test_custom_native');
+    AdWhaleNativeCustomView(
+      placementUid: _currentPlacementUid(),
+      nativeAdLoadCallback: AdWhaleNativeAdLoadCallback(
+        onLoaded: (ad) {
+          debugPrint('GuideSampleAndroidPage CustomNative onLoaded');
+          setState(() {
+            _isCustomNativeLoaded = true;
+            _nativeLoaded = true;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('네이티브 커스텀 광고 로드 완료')),
+            );
+          }
+        },
+        onLoadFailed: (ad, code, message) {
+          debugPrint(
+            'GuideSampleAndroidPage CustomNative onFailedToLoad: $code, $message',
+          );
+          ad.destroy();
+          setState(() {
+            _adWhaleCustomNativeAd = null;
+            _isCustomNativeLoaded = false;
+            _nativeLoaded = false;
+            _nativeShown = false;
+            _nativeHeight = null;
+          });
+        },
+        onShowFailed: (ad, code, message) {
+          debugPrint(
+            'GuideSampleAndroidPage CustomNative onShowFailed: $code, $message',
+          );
+          ad.destroy();
+          setState(() {
+            _adWhaleCustomNativeAd = null;
+            _isCustomNativeLoaded = false;
+            _nativeLoaded = false;
+            _nativeShown = false;
+            _nativeHeight = null;
+          });
+        },
+        onClicked: (ad) {
+          debugPrint('GuideSampleAndroidPage CustomNative onClicked');
+        },
+        onClosed: (ad) {
+          debugPrint('GuideSampleAndroidPage CustomNative onClosed');
+        },
+      ),
+      factoryId: 'app_custom',
+    )
+      ..setRegion('서울시 구로구')
+      ..setGcoder(37.48, 126.89)
+      ..setPlacementName('test_custom_native');
 
     _adWhaleNativeAd = _adWhaleCustomNativeAd;
     _nativeLoaded = false;
+
+    _nativeHeightSub = instanceManager.nativeAdHeightStream.listen((int h) {
+      if (!mounted) return;
+      setState(() {
+        _nativeHeight = h.toDouble();
+      });
+    });
 
     _adWhaleCustomNativeAd!.loadAd();
   }

@@ -37,7 +37,8 @@ dependencies:
   
   # 로컬 테스트를 위해 dependency_overrides 사용
   # pub.dev에 배포된 버전을 dependencies에 명시하고, dependency_overrides로 로컬 경로 오버라이드
-  adwhale_sdk_flutter: ^2.7.2+6
+  adwhale_sdk_flutter: ^2.7.2+7
+
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,11 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:adwhale_sdk_flutter/adwhale_sdk_flutter.dart';
 
-import 'guide_sample.dart';
+import 'guide_sample_android.dart';
+import 'guide_sample_integration.dart';
+// import 'mediation_ads_test_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,15 +54,41 @@ class MainMenuPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // _buildCenterButton(
+              //   context,
+              //   text: 'AdWhaleMediationAds API 단위 테스트',
+              //   onPressed: () {
+              //     Navigator.of(context).push(
+              //       MaterialPageRoute(
+              //           builder: (_) => const MediationAdsTestPage()),
+              //     );
+              //   },
+              // ),
+              // const SizedBox(height: 12),
               _buildCenterButton(
                 context,
-                text: '기본 배너, 전면, 보상형, 네이티브, 앱오프닝 테스트',
+                text: 'Android / iOS 통합 배너 샘플',
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const GuideSamplePage()),
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            const GuideSampleIntegrationPage()),
                   );
                 },
               ),
+              if (Platform.isAndroid) ...[
+                const SizedBox(height: 12),
+                _buildCenterButton(
+                  context,
+                  text: '기본 배너, 전면, 보상형, 네이티브, 앱오프닝 테스트',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const GuideSampleAndroidPage()),
+                    );
+                  },
+                ),
+              ],
             ],
           ),
         ),

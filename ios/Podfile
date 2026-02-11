@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+platform :ios, '13.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -28,9 +28,22 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  use_frameworks!
+  # path 의존성 플러그인의 iOS 프레임워크가 앱 번들에 포함되지 않는 dyld 오류 방지
+  use_frameworks! :linkage => :static
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  
+  # AdMob Mediation: 필요한 네트워크만 주석 해제하여 사용 (AdMob 12.x 호환)
+  pod 'GoogleMobileAdsMediationUnity', '~> 4.16.3.0'
+  pod 'GoogleMobileAdsMediationMoloco', '~> 4.1.0.0'
+  pod 'GoogleMobileAdsMediationAppLovin', '~> 13.5.0.0'
+  pod 'GoogleMobileAdsMediationInMobi', '~> 11.0.0.0'
+  pod 'GoogleMobileAdsMediationVungle', '~> 7.6.1.0'
+  pod 'GoogleMobileAdsMediationFyber', '~> 8.4.1.0'
+  pod 'GoogleMobileAdsMediationMintegral', '~> 7.7.9.1'
+  pod 'GoogleMobileAdsMediationPangle', '~> 7.7.0.6.0'
+  pod 'GoogleMobileAdsMediationIronSource', '~> 9.0.0.0.0'
+  
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -39,5 +52,23 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+  end
+  
+  # Mediation 어댑터(InMobi 등) 사용 시 필요: Runner 앱 타겟 Other Linker Flags에 -ObjC 추가
+  runner_project_path = File.join(File.dirname(__FILE__), 'Runner.xcodeproj')
+  if File.exist?(runner_project_path)
+    require 'xcodeproj'
+    project = Xcodeproj::Project.open(runner_project_path)
+    project.native_targets.each do |target|
+      if target.name == 'Runner'
+        target.build_configurations.each do |config|
+          flags = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+          flags = [flags] if flags.is_a?(String)
+          config.build_settings['OTHER_LDFLAGS'] = (flags + ['-ObjC']).uniq
+        end
+        break
+      end
+    end
+    project.save
   end
 end
