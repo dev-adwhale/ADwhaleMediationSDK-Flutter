@@ -56,10 +56,35 @@ cd ..
 
 #### Placement UID 설정
 
-**`lib/guide_sample_android.dart`**  
+**`lib/config.dart`**  
 각 광고 타입별 Placement UID를 설정하세요:
 
 ```dart
+  static const Map<String, String> _config = {
+
+  /// iOS 지면ID(AdUnitId) 정보
+  'iosBannerAdUnitId': 'YOUR_IOS_BANNER_PLACEMENT_UID',
+  'iosInterstitialAdUnitId': 'YOUR_IOS_INTERSTITIAL_PLACEMENT_UID',
+  'iosRewardAdUnitId': 'YOUR_IOS_REWARD_PLACEMENT_UID',
+  'iosAppOpenAdUnitId': 'YOUR_IOS_APP_OPEN_PLACEMENT_UID',
+  'iosNativeAdUnitId': 'YOUR_IOS_NATIVE_PLACEMENT_UID',
+  
+  /// 안드로이드 지면ID(PlacementUid) 정보
+  'banner320x50PlacementUid': 'YOUR_AOS_BANNER_PLACEMENT_UID',
+  'banner320x100PlacementUid': 'YOUR_AOS_BANNER_PLACEMENT_UID',
+  'banner300x250PlacementUid': 'YOUR_AOS_BANNER_PLACEMENT_UID',
+  'banner250x250PlacementUid': 'YOUR_AOS_BANNER_PLACEMENT_UID',
+  'interstitialPlacementUid1': 'YOUR_AOS_INTERSTITIAL_PLACEMENT_UID',
+  'interstitialPlacementUid2': 'YOUR_AOS_INTERSTITIAL_PLACEMENT_UID',
+  'interstitialPlacementUid3': 'YOUR_AOS_INTERSTITIAL_PLACEMENT_UID',
+  'rewardPlacementUid1': 'YOUR_AOS_REWARD_PLACEMENT_UID',
+  'rewardPlacementUid2': 'YOUR_AOS_REWARD_PLACEMENT_UID',
+  'rewardPlacementUid3': 'YOUR_AOS_REWARD_PLACEMENT_UID',
+  'nativePlacementUid': 'YOUR_AOS_NATIVE_PLACEMENT_UID',
+  'appOpenPlacementUid': 'YOUR_AOS_APP_OPEN_PLACEMENT_UID',
+  'exitPopupPlacementUid': 'YOUR_AOS_EXIT_POPUP_PLACEMENT_UID',
+  'transitionPopupPlacementUid': 'YOUR_AOS_TRANSITION_POPUP_PLACEMENT_UID',
+};
 _placementUidByType.addAll(<int, String>{
   0: "YOUR_BANNER_PLACEMENT_UID",      // 배너
   1: "YOUR_INTERSTITIAL_PLACEMENT_UID", // 전면
@@ -68,20 +93,6 @@ _placementUidByType.addAll(<int, String>{
   4: "YOUR_NATIVE_CUSTOM_PLACEMENT_UID",   // 네이티브(커스텀)
   5: "YOUR_APP_OPEN_PLACEMENT_UID",     // 앱 오프닝
 });
-```
-
-**`lib/guide_sample_integration.dart`** (Android 배너 + iOS AdMob 배너 통합 샘플)  
-이 파일도 사용할 경우 다음 두 값을 반드시 설정하세요:
-
-- **`androidPlacementUid`**: AdWhale 대시보드에서 발급한 배너 Placement UID
-- **`iosBannerAdUnitId`**: iOS용 Google AdMob 배너 광고 단위 ID (예: `ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx`)
-
-```dart
-adInfo: AdInfo(
-  androidPlacementUid: 'YOUR_BANNER_PLACEMENT_UID',
-  iosBannerAdUnitId: 'YOUR_IOS_ADMOB_BANNER_AD_UNIT_ID',
-  bannerHeight: size,
-),
 ```
 
 ### 3. 실행
@@ -100,22 +111,20 @@ flutter run -d <device-id>
 
 ## 프로젝트 구조
 
-- `lib/main.dart`: 앱 진입점 및 SDK 초기화
-- `lib/guide_sample_android.dart`: Android용 모든 광고 타입 샘플 구현
+- `lib/main.dart`: 앱 진입점 및 SDK 초기화, Android 전용 종료 팝업 광고 구현
+- `lib/guide_sample.dart`: Android iOS 모든 광고 타입 샘플 구현
   - 배너 광고
   - 전면 광고
   - 보상형 광고
   - 네이티브 템플릿 광고
   - 네이티브 커스텀 광고
   - 앱 오프닝 광고
-- `lib/guide_sample_integration.dart`: Android(iOS) 통합 배너 샘플
-  - Android: AdWhale placement UID 사용
-  - iOS: Google AdMob 배너 광고 단위 ID 사용
+- `lib/transition_popup_ad_test_page.dart`: Android 전용 전환 팝업 광고 구현
 
 ## 주요 기능
 
-- ✅ AdWhale SDK 2.7.2+7 연동
-- ✅ 모든 광고 타입 샘플 코드(iOS는 배너만)
+- ✅ AdWhale SDK 2.7.3+0 연동
+- ✅ 모든 광고 타입 샘플 코드
 - ✅ COPPA, GDPR 설정 기능
 - ✅ 로거 설정 기능
 - ✅ ProGuard 설정 완료

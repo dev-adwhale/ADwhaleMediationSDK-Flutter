@@ -1,26 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:adwhale_sdk_flutter/adwhale_sdk_flutter.dart';
+import '../config.dart';
 
-class GuideSampleAndroidPage extends StatefulWidget {
-  const GuideSampleAndroidPage({super.key});
+class GuideSamplePage extends StatefulWidget {
+  const GuideSamplePage({super.key});
 
   @override
-  State<GuideSampleAndroidPage> createState() => _GuideSampleAndroidPageState();
+  State<GuideSamplePage> createState() => _GuideSamplePageState();
 }
 
-class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
+class _GuideSamplePageState extends State<GuideSamplePage> {
+  static const List<String> _tfuaLabels = <String>[
+    'TAG_FOR_UNDER_AGE_OF_CONSENT_TRUE',
+    'TAG_FOR_UNDER_AGE_OF_CONSENT_FALSE',
+    'TAG_FOR_UNDER_AGE_OF_CONSENT_UNSPECIFIED',
+  ];
+
+  static const List<String> _maxRatingLabels = <String>[
+    'MAX_AD_CONTENT_RATING_G',
+    'MAX_AD_CONTENT_RATING_PG',
+    'MAX_AD_CONTENT_RATING_T',
+    'MAX_AD_CONTENT_RATING_MA',
+  ];
+
+  /// `setMaxAdContentRating`용 (mediation_ads_test_page와 동일 매핑).
+  static const List<String?> _maxRatingApiValues = <String?>[
+    '.general',
+    '.parentalGuidance',
+    '.teen',
+    '.matureAudience',
+  ];
+
+  /// Android GuideActivity 스피너와 동일: 0 TRUE, 1 FALSE, 2 UNSPECIFIED. 기본 UNSPECIFIED.
+  int _tfuaModeIndex = 2;
+
+  /// 기본 MA (가장 덜 제한적).
+  int _maxRatingIndex = 3;
+
   bool _isCoppa = false;
   bool _isLoggerOn = false;
+  bool _isAppMuted = false;
+  final TextEditingController _appVolumeController = TextEditingController(
+    text: '0.1',
+  );
+  final TextEditingController _debugInfoController = TextEditingController();
 
-  int _selectedAdType = 0; // 0: 배너, 1: 전면, 2: 보상형전면, 3: 네이티브(템플릿), 4: 네이티브(커스텀), 5: 앱 오프닝
+  int _selectedAdType =
+  0; // 0: 배너, 1: 전면, 2: 보상형전면, 3: 네이티브(템플릿), 4: 네이티브(커스텀), 5: 앱 오프닝
   int _selectedBannerSize = 0;
 
   AdWhaleAdView? _adWhaleAdView;
   final TextEditingController _adaptiveWidthController = TextEditingController(
     text: '0',
   );
-
 
   final TextEditingController _placementUidController = TextEditingController();
   final Map<int, String> _placementUidByType = <int, String>{};
@@ -52,14 +87,38 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
   void initState() {
     super.initState();
     _placementUidByType.addAll(<int, String>{
-      0: 'placement Uid 를 발급받으세요', // 배너
-      1: 'placement Uid 를 발급받으세요', // 전면
-      2: 'placement Uid 를 발급받으세요', // 보상형전면
-      3: 'placement Uid 를 발급받으세요', // 네이티브(템플릿)
-      4: 'placement Uid 를 발급받으세요', // 네이티브(커스텀)
-      5: 'placement Uid 를 발급받으세요', // 앱 오프닝
+      0: AdConfig.banner320x50PlacementUid, // 배너
+      1: AdConfig.interstitialPlacementUid1, // 전면
+      2: AdConfig.rewardPlacementUid1, // 보상형전면
+      3: AdConfig.nativePlacementUid, // 네이티브(템플릿)
+      4: AdConfig.nativePlacementUid, // 네이티브(커스텀)
+      5: AdConfig.appOpenPlacementUid, // 앱 오프닝
     });
     _placementUidController.text = _placementUidByType[_selectedAdType] ?? '';
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _applyTfuaMode(_tfuaModeIndex);
+      await _applyMaxRating(_maxRatingIndex);
+    });
+  }
+
+  Future<void> _applyTfuaMode(int index) async {
+    try {
+      await AdWhaleMediationAds.instance.setTagForUnderAgeOfConsentMode(index);
+      debugPrint('TFUA applied: ${_tfuaLabels[index]}');
+    } catch (e) {
+      debugPrint('setTagForUnderAgeOfConsentMode error: $e');
+    }
+  }
+
+  Future<void> _applyMaxRating(int index) async {
+    try {
+      final rating = _maxRatingApiValues[index];
+      await AdWhaleMediationAds.instance.setMaxAdContentRating(rating);
+      debugPrint('MaxAdContentRating applied: ${_maxRatingLabels[index]}');
+    } catch (e) {
+      debugPrint('setMaxAdContentRating error: $e');
+    }
   }
 
   void _onAdTypeChanged(int newType) {
@@ -87,7 +146,6 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
       return 720;
     }
 
-
     switch (_selectedTemplateSize) {
       case AdWhaleNativeTemplate.small:
         if (h != null) return h.clamp(220, 900).toDouble();
@@ -102,6 +160,7 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isIos = Platform.isIOS;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(title: const Text('기본 배너/전면/보상형/네이티브/앱오프닝 테스트')),
@@ -113,51 +172,339 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // COPPA + GDPR / CHECK / RESET
+                  // TFUA / MaxRating (Android GuideActivity 상단 스피너)
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text('COPPA'),
+                      const Text('TFUA', style: TextStyle(fontSize: 12)),
                       const SizedBox(width: 8),
-                      Switch(
-                        value: _isCoppa,
-                        onChanged: (v) async {
-                          setState(() => _isCoppa = v);
-                          // COPPA 토글: false -> setCoppa(false), true -> setCoppa(true)
-                          await AdWhaleMediationAds.instance.setCoppa(v);
-                        },
+                      Expanded(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: _tfuaModeIndex,
+                          items: List<DropdownMenuItem<int>>.generate(
+                            _tfuaLabels.length,
+                                (int i) => DropdownMenuItem<int>(
+                              value: i,
+                              child: Text(
+                                _tfuaLabels[i],
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          onChanged: (int? v) async {
+                            if (v == null) return;
+                            setState(() => _tfuaModeIndex = v);
+                            await _applyTfuaMode(v);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('TFUA: ${_tfuaLabels[v]}'),
+                              ),
+                            );
+                          },
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text('MaxRating', style: TextStyle(fontSize: 12)),
                       const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: _maxRatingIndex,
+                          items: List<DropdownMenuItem<int>>.generate(
+                            _maxRatingLabels.length,
+                                (int i) => DropdownMenuItem<int>(
+                              value: i,
+                              child: Text(
+                                _maxRatingLabels[i],
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          onChanged: (int? v) async {
+                            if (v == null) return;
+                            setState(() => _maxRatingIndex = v);
+                            await _applyMaxRating(v);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'MaxRating: ${_maxRatingLabels[v]}',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // COPPA + GDPR + Check(Android만) + Reset
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('COPPA'),
+                          Switch(
+                            value: _isCoppa,
+                            onChanged: (v) async {
+                              setState(() => _isCoppa = v);
+                              await AdWhaleMediationAds.instance.setCoppa(v);
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('COPPA setting applied: $v'),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                       _purpleSmallButton(
                         'GDPR',
                         onPressed: () async {
-                          // GDPR 버튼: requestGdprConsent()
-                          await AdWhaleMediationAds.instance
+                          final r = await AdWhaleMediationAds.instance
                               .requestGdprConsent();
+                          if (!mounted) return;
+                          final ok = r['success'] == true;
+                          final msg = r['message']?.toString() ?? '';
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'GDPR Consent: ${ok ? 'Success' : 'Failed'}, $msg',
+                              ),
+                            ),
+                          );
                         },
                       ),
-                      const SizedBox(width: 8),
                       _purpleSmallButton(
-                        'RESET',
+                        'Check',
+                        onPressed: Platform.isAndroid
+                            ? () async {
+                          try {
+                            final m = await AdWhaleMediationAds.instance
+                                .getConsentStatus();
+                            if (!mounted) return;
+                            final coppa = m['coppa'];
+                            final gdpr = m['gdpr']?.toString() ?? '';
+                            final pc = m['personalizedConsent'];
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'coppa: $coppa, gdpr: $gdpr, personalizedConsent: $pc',
+                                ),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Check: $e')),
+                            );
+                          }
+                        }
+                            : null,
+                      ),
+                      _purpleSmallButton(
+                        'Reset',
                         onPressed: () async {
-                          // reset 버튼: resetGdprConsentStatus()
                           await AdWhaleMediationAds.instance
                               .resetGdprConsentStatus();
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'GDPR consent status has been reset.',
+                              ),
+                            ),
+                          );
                         },
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _purpleSmallButton(
+                        'SINGLE GDPR TRUE',
+                        onPressed: Platform.isAndroid
+                            ? () async {
+                          await AdWhaleMediationAds.instance
+                              .setGdpr(true);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('setGdpr(true)'),
+                            ),
+                          );
+                        }
+                            : null,
+                      ),
+                      _purpleSmallButton(
+                        'SINGLE GDPR FALSE',
+                        onPressed: Platform.isAndroid
+                            ? () async {
+                          await AdWhaleMediationAds.instance
+                              .setGdpr(false);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('setGdpr(false)'),
+                            ),
+                          );
+                        }
+                            : null,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _purpleSmallButton(
+                      'AdMob Ad Inspector',
+                      onPressed: () async {
+                        try {
+                          final ok = await AdWhaleMediationAds.instance
+                              .showAdInspector(
+                            onClosed: (code, message) {
+                              debugPrint(
+                                'AdInspector closed: code=$code message=$message',
+                              );
+                              if (!context.mounted) return;
+                              if (code != 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(message)),
+                                );
+                              }
+                            },
+                          );
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ok
+                                    ? 'Ad Inspector 요청됨'
+                                    : 'Ad Inspector를 열 수 없습니다(Activity 등).',
+                              ),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Ad Inspector: $e')),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   const Text('1. 로거출력여부:', style: TextStyle(fontSize: 15)),
                   Switch(
                     value: _isLoggerOn,
                     onChanged: (v) async {
+                      if (isIos) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('iOS에서는 로거 설정을 지원하지 않습니다.'),
+                          ),
+                        );
+                        return;
+                      }
                       // 로거 출력 여부 토글:
                       //  - true  -> AdWhaleLog.setLogLevel(Verbose)
                       //  - false -> AdWhaleLog.setLogLevel(None)
                       setState(() => _isLoggerOn = v);
                       await AdWhaleMediationAds.instance.setLoggerEnabled(v);
-                      final logLevel = await AdWhaleMediationAds.instance.getLogLevel();
+                      final logLevel = await AdWhaleMediationAds.instance
+                          .getLogLevel();
                       debugPrint('현재 로그 레벨: $logLevel');
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('앱 볼륨/Mute 설정:', style: TextStyle(fontSize: 15)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Text('App Muted:', style: TextStyle(fontSize: 14)),
+                      const SizedBox(width: 8),
+                      Switch(
+                        value: _isAppMuted,
+                        onChanged: (v) {
+                          setState(() => _isAppMuted = v);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _appVolumeController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: '0.0 ~ 1.0',
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _purpleSmallButton(
+                    '볼륨/Mute 적용',
+                    onPressed: () async {
+                      try {
+                        final text = _appVolumeController.text.trim();
+                        if (text.isEmpty) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('볼륨 값을 입력해주세요.')),
+                          );
+                          return;
+                        }
+
+                        double volume = double.parse(text);
+                        if (volume < 0.0) volume = 0.0;
+                        if (volume > 1.0) volume = 1.0;
+
+                        await AdWhaleMediationAds.instance.setAppMuted(
+                          _isAppMuted,
+                        );
+                        await AdWhaleMediationAds.instance.setAppVolume(volume);
+
+                        debugPrint(
+                          'setAppMuted=$_isAppMuted setAppVolume=$volume',
+                        );
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Mute: $_isAppMuted, Volume: ${volume.toStringAsFixed(2)}',
+                            ),
+                          ),
+                        );
+                      } catch (e) {
+                        debugPrint('setAppMuted/setAppVolume error: $e');
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('설정 실패: $e')));
+                      }
                     },
                   ),
                   const SizedBox(height: 8),
@@ -170,8 +517,16 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
                       _adTypeRadio(0, '배너'),
                       _adTypeRadio(1, '전면'),
                       _adTypeRadio(2, '보상형전면'),
-                      _adTypeRadio(3, '네이티브광고(고정형템플릿)'),
-                      _adTypeRadio(4, '네이티브광고(커스텀바인딩)'),
+                      _adTypeRadio(
+                        3,
+                        isIos ? '네이티브광고(고정형템플릿) (iOS 미지원)' : '네이티브광고(고정형템플릿)',
+                      ),
+                      _adTypeRadio(
+                        4,
+                        isIos
+                            ? '네이티브광고(커스텀바인딩) (iOS: SDK 고정 레이아웃)'
+                            : '네이티브광고(커스텀바인딩)',
+                      ),
                       _adTypeRadio(5, '앱 오프닝'),
                     ],
                   ),
@@ -194,20 +549,50 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
                     style: TextStyle(fontSize: 15),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    '4. placement uid입력:',
-                    style: TextStyle(fontSize: 15),
+                  Text(
+                    isIos &&
+                        (_selectedAdType == 1 ||
+                            _selectedAdType == 2 ||
+                            _selectedAdType == 4 ||
+                            _selectedAdType == 5)
+                        ? '4. placement / Ad Unit ID:'
+                        : '4. placement uid입력:',
+                    style: const TextStyle(fontSize: 15),
                   ),
+                  if (isIos &&
+                      (_selectedAdType == 1 ||
+                          _selectedAdType == 2 ||
+                          _selectedAdType == 4 ||
+                          _selectedAdType == 5)) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _selectedAdType == 1
+                          ? 'iOS 전면: AdConfig.iosInterstitialAdUnitId로 로드됩니다. 아래 입력은 사용하지 않습니다.'
+                          : _selectedAdType == 2
+                          ? 'iOS 보상형: AdConfig.iosRewardAdUnitId로 로드됩니다. 아래 입력은 사용하지 않습니다.'
+                          : _selectedAdType == 4
+                          ? 'iOS 네이티브: AdConfig.iosNativeAdUnitId로 로드됩니다. 아래 입력은 사용하지 않습니다.'
+                          : 'iOS 앱오프닝: AdConfig.iosAppOpenAdUnitId로 로드됩니다. 아래 입력은 사용하지 않습니다.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   TextField(
                     controller: _placementUidController,
                     onChanged: (v) {
                       _placementUidByType[_selectedAdType] = v.trim();
                     },
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'placement uid를 입력해주세요.',
-                      contentPadding: EdgeInsets.symmetric(
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      hintText:
+                      isIos &&
+                          (_selectedAdType == 1 ||
+                              _selectedAdType == 2 ||
+                              _selectedAdType == 4 ||
+                              _selectedAdType == 5)
+                          ? '(Android만) placement uid'
+                          : 'placement uid를 입력해주세요.',
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 8,
                       ),
@@ -328,7 +713,7 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
                         '뷰 초기화',
                         onPressed: _onClearAdsPressed,
                       ),
-                      _purpleButton('복사', onPressed: () {}),
+                      _purpleButton('복사', onPressed: _onCopyDebugPressed),
                     ]
                         : [
                       _purpleButton(
@@ -343,15 +728,16 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
                         '뷰 초기화',
                         onPressed: _onClearAdsPressed,
                       ),
-                      _purpleButton('복사', onPressed: () {}),
+                      _purpleButton('복사', onPressed: _onCopyDebugPressed),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const TextField(
+                  TextField(
+                    controller: _debugInfoController,
                     readOnly: true,
                     minLines: 6,
                     maxLines: null,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       hintText: 'Please touch [광고 로드] button.',
                       contentPadding: EdgeInsets.symmetric(
@@ -420,21 +806,20 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
           groupValue: _selectedAdType,
           onChanged: (v) => _onAdTypeChanged(v ?? 0),
         ),
-        Text(label),
+        Expanded(child: Text(label, softWrap: true)),
       ],
     );
   }
 
   Widget _bannerSizeRadio(int value, String label) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Radio<int>(
           value: value,
           groupValue: _selectedBannerSize,
           onChanged: (v) => setState(() => _selectedBannerSize = v ?? 0),
         ),
-        Text(label),
+        Expanded(child: Text(label, softWrap: true)),
       ],
     );
   }
@@ -485,32 +870,37 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
     debugPrint(
       'GuideSampleAndroidPage _createBanner size=$bannerSize, adaptiveWidth=$adaptiveAnchorWidth',
     );
-    _adWhaleAdView =
-    AdWhaleAdView(
-      listener: AdWhaleAdViewListener(
-        onLoaded: (ad) {
-          debugPrint(
-            'GuideSampleAndroidPage BannerAd onLoaded for size $bannerSize',
-          );
-          setState(() {});
-        },
-        onLoadFailed: (ad, errorCode, errorMessage) {
-          debugPrint(
-            'GuideSampleAndroidPage BannerAd onLoadFailed for $bannerSize: errorCode: $errorCode, errorMessage: $errorMessage',
-          );
-          ad.destroy();
-          setState(() {
-            _adWhaleAdView = null;
-          });
-        },
-        onClicked: (ad) {
-          debugPrint(
-            'GuideSampleAndroidPage BannerAd onClicked for size $bannerSize',
-          );
-        },
-      ),
-      adInfo: AdInfo.legacy(_currentPlacementUid(), bannerSize),
+    final listener = AdWhaleAdViewListener(
+      onLoaded: (ad) {
+        debugPrint(
+          'GuideSampleAndroidPage BannerAd onLoaded for size $bannerSize',
+        );
+        setState(() {});
+      },
+      onLoadFailed: (ad, errorCode, errorMessage) {
+        debugPrint(
+          'GuideSampleAndroidPage BannerAd onLoadFailed for $bannerSize: errorCode: $errorCode, errorMessage: $errorMessage',
+        );
+        ad.destroy();
+        setState(() {
+          _adWhaleAdView = null;
+        });
+      },
+      onClicked: (ad) {
+        debugPrint(
+          'GuideSampleAndroidPage BannerAd onClicked for size $bannerSize',
+        );
+      },
+    );
+    final adInfo = Platform.isIOS
+        ? AdInfo(
+      androidPlacementUid: _currentPlacementUid(),
+      iosBannerAdUnitId: AdConfig.iosBannerAdUnitId,
+      bannerHeight: bannerSize,
     )
+        : AdInfo.legacy(_currentPlacementUid(), bannerSize);
+
+    _adWhaleAdView = AdWhaleAdView(listener: listener, adInfo: adInfo)
       ..setRegion('서울시 강남구')
       ..setGcoder(37.5665, 126.9780)
       ..setPlacementName('guide_banner');
@@ -548,10 +938,40 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
     _nativeHeightSub?.cancel();
     _placementUidController.dispose();
     _adaptiveWidthController.dispose();
+    _appVolumeController.dispose();
+    _debugInfoController.dispose();
     super.dispose();
   }
 
+  Future<void> _onCopyDebugPressed() async {
+    final text = _debugInfoController.text;
+    if (text.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('복사할 내용이 없습니다.')));
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Copy success!')));
+  }
+
   void _onLoadNonBannerPressed() {
+    if (Platform.isIOS &&
+        _selectedAdType != 1 &&
+        _selectedAdType != 2 &&
+        _selectedAdType != 4 &&
+        _selectedAdType != 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('iOS에서는 현재 전면/보상형/네이티브(커스텀)/앱오프닝만 지원합니다.'),
+        ),
+      );
+      return;
+    }
     switch (_selectedAdType) {
       case 1: // 전면
         _loadInterstitial();
@@ -574,6 +994,18 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
   }
 
   void _onShowNonBannerPressed() {
+    if (Platform.isIOS &&
+        _selectedAdType != 1 &&
+        _selectedAdType != 2 &&
+        _selectedAdType != 4 &&
+        _selectedAdType != 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('iOS에서는 현재 전면/보상형/네이티브(커스텀)/앱오프닝만 지원합니다.'),
+        ),
+      );
+      return;
+    }
     switch (_selectedAdType) {
       case 1:
         _showInterstitial();
@@ -635,9 +1067,13 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
     _interstitialAd = null;
     _isInterstitialLoaded = false;
 
+    final String interstitialUnitId = Platform.isIOS
+        ? AdConfig.iosInterstitialAdUnitId
+        : _currentPlacementUid();
+
     _interstitialAd =
     AdWhaleInterstitialAd(
-      appCode: _currentPlacementUid(),
+      placementUid: interstitialUnitId,
       adLoadCallback: AdWhaleInterstitialAdLoadCallback(
         onLoaded: () {
           debugPrint('GuideSampleAndroidPage Interstitial onLoaded');
@@ -700,7 +1136,9 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
 
     _rewardAd =
     AdWhaleRewardAd(
-      appCode: _currentPlacementUid(),
+      placementUid: Platform.isIOS
+          ? AdConfig.iosRewardAdUnitId
+          : _currentPlacementUid(),
       adRewardLoadCallback: AdWhaleRewardAdLoadCallback(
         onLoaded: () {
           debugPrint('GuideSampleAndroidPage Reward onLoaded');
@@ -766,7 +1204,9 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
 
     _appOpenAd =
     AdWhaleAppOpenAd(
-      placementUid: _currentPlacementUid(),
+      placementUid: Platform.isIOS
+          ? AdConfig.iosAppOpenAdUnitId
+          : _currentPlacementUid(),
       adLoadCallback: AdWhaleAppOpenAdLoadCallback(
         onLoaded: () {
           debugPrint('GuideSampleAndroidPage AppOpen onLoaded');
@@ -781,6 +1221,7 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
           debugPrint(
             'GuideSampleAndroidPage AppOpen onLoadFailed: $code, $message',
           );
+          _appOpenAd?.destroy();
           _appOpenAd = null;
           _isAppOpenLoaded = false;
         },
@@ -791,11 +1232,15 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
           debugPrint(
             'GuideSampleAndroidPage AppOpen onAdShowFailed: $code, $message',
           );
+          _appOpenAd?.destroy();
           _appOpenAd = null;
           _isAppOpenLoaded = false;
         },
         onDismissed: () {
           debugPrint('GuideSampleAndroidPage AppOpen onAdDismissed');
+          _appOpenAd?.destroy();
+          _appOpenAd = null;
+          _isAppOpenLoaded = false;
         },
         onClicked: () {
           debugPrint('GuideSampleAndroidPage AppOpen onClicked');
@@ -819,7 +1264,8 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
     }
     _appOpenAd!.showAd();
     _isAppOpenLoaded = false;
-    _appOpenAd = null;
+    // iOS는 AdWhaleAppOpenAd.shared 싱글톤이라, 여기서 참조만 끊으면 네이티브에
+    // 미사용 광고가 남아 다음 load가 실패할 수 있다. 정리는 onDismissed / onShowFailed에서 destroy().
   }
 
   void _loadTemplateNative() {
@@ -948,7 +1394,9 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
 
     _adWhaleCustomNativeAd =
     AdWhaleNativeCustomView(
-      placementUid: _currentPlacementUid(),
+      placementUid: Platform.isIOS
+          ? AdConfig.iosNativeAdUnitId
+          : _currentPlacementUid(),
       nativeAdLoadCallback: AdWhaleNativeAdLoadCallback(
         onLoaded: (ad) {
           debugPrint('GuideSampleAndroidPage CustomNative onLoaded');
@@ -1031,7 +1479,7 @@ class _GuideSampleAndroidPageState extends State<GuideSampleAndroidPage> {
     });
   }
 
-  Widget _purpleSmallButton(String text, {required VoidCallback onPressed}) {
+  Widget _purpleSmallButton(String text, {VoidCallback? onPressed}) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
