@@ -111,7 +111,7 @@ flutter run -d <device-id>
 
 ## 프로젝트 구조
 
-- `lib/main.dart`: 앱 진입점 및 SDK 초기화, Android 전용 종료 팝업 광고 구현
+- `lib/main.dart`: 앱 진입점 및 SDK 초기화, Android 전용 앱 종료 팝업 광고 구현
 - `lib/guide_sample.dart`: Android iOS 모든 광고 타입 샘플 구현
   - 배너 광고
   - 전면 광고
@@ -123,7 +123,7 @@ flutter run -d <device-id>
 
 ## 주요 기능
 
-- ✅ AdWhale SDK 2.7.3+0 연동
+- ✅ AdWhale SDK 2.7.3+1 연동
 - ✅ 모든 광고 타입 샘플 코드
 - ✅ COPPA, GDPR 설정 기능
 - ✅ 로거 설정 기능
