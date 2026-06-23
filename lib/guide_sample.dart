@@ -60,6 +60,16 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
   final TextEditingController _placementUidController = TextEditingController();
   final Map<int, String> _placementUidByType = <int, String>{};
 
+  // 보상형 SSV 테스트용 입력값. 기본값은 네이티브 QA 샘플의 하드코딩 값과 동일하게 둔다.
+  // (기본값은 UI(controller)에만 반영되고, 실제 전달 값은 입력칸의 현재 텍스트를 사용한다.)
+  final TextEditingController _rewardRequestIdController =
+      TextEditingController(text: 'test_request_001');
+  final TextEditingController _rewardSessionIdController =
+      TextEditingController(text: 'test_session_001');
+  final TextEditingController _rewardUserIdController = TextEditingController(
+    text: 'test_user_001',
+  );
+
   AdWhaleInterstitialAd? _interstitialAd;
   bool _isInterstitialLoaded = false;
 
@@ -530,6 +540,20 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
                       _adTypeRadio(5, '앱 오프닝'),
                     ],
                   ),
+                  // 보상형전면 선택 시에만: SSV(request_id/session_id/userId) 입력칸
+                  if (_selectedAdType == 2) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      '보상형 SSV 테스트 값:',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    _rewardSsvField('request_id', _rewardRequestIdController),
+                    const SizedBox(height: 6),
+                    _rewardSsvField('session_id', _rewardSessionIdController),
+                    const SizedBox(height: 6),
+                    _rewardSsvField('userId', _rewardUserIdController),
+                  ],
                   const SizedBox(height: 8),
                   const Text(
                     '3. publisher uid입력:',
@@ -811,6 +835,33 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
     );
   }
 
+  Widget _rewardSsvField(String label, TextEditingController controller) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 88,
+          child: Text(label, style: const TextStyle(fontSize: 13)),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              hintText: '$label 값을 입력해주세요.',
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 8,
+              ),
+            ),
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _bannerSizeRadio(int value, String label) {
     return Row(
       children: [
@@ -937,6 +988,9 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
     _adWhaleNativeAd?.destroy();
     _nativeHeightSub?.cancel();
     _placementUidController.dispose();
+    _rewardRequestIdController.dispose();
+    _rewardSessionIdController.dispose();
+    _rewardUserIdController.dispose();
     _adaptiveWidthController.dispose();
     _appVolumeController.dispose();
     _debugInfoController.dispose();
@@ -1180,6 +1234,19 @@ class _GuideSamplePageState extends State<GuideSamplePage> {
       ..setRegion('test_reward_region')
       ..setGcoder(37.5, 126.9)
       ..setPlacementName('test_reward');
+
+    // 보상형 SSV: userId / customData (네이티브 QA 샘플과 동일 구성).
+    // os 값은 플랫폼에 따라 Flutter-Android / Flutter-iOS 로 전달한다.
+    // Android(2.7.4+) / iOS(1.0.7+) 모두 지원. (AdMob/AdManager SSV에서만 동작)
+    _rewardAd!.setUserId(_rewardUserIdController.text.trim());
+    _rewardAd!.setCustomData(<String, String>{
+      'publisherUid': 'testPublisherUid',
+      'placementUid': _currentPlacementUid(),
+      'request_id': _rewardRequestIdController.text.trim(),
+      'session_id': _rewardSessionIdController.text.trim(),
+      'os': Platform.isIOS ? 'Flutter-iOS' : 'Flutter-Android',
+    });
+
     _rewardAd!.loadAd();
   }
 

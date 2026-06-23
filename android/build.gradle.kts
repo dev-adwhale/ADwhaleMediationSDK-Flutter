@@ -20,6 +20,20 @@ allprojects {
         maven {
             url = uri("https://devrepo.kakao.com/nexus/content/groups/public/")
         }
+
+        // Mintegral SDK Repository
+        maven {
+            url = uri("https://dl-maven-android.mintegral.com/repository/mbridge_android_sdk_oversea")
+        }
+
+        // Pangle SDK Repository
+        maven {
+            url = uri("https://artifact.bytedance.com/repository/pangle/") }
+
+        // Ironsource SDK Repository
+        maven {
+            url = uri("https://android-sdk.is.com/") }
+
     }
 }
 

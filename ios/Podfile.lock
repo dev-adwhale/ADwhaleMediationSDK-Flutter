@@ -7,11 +7,11 @@ PODS:
   - Ads-Global/PangleSDK (7.9.0.6)
   - Ads-Global/TikTokBusinessSDK (7.9.0.6)
   - adwhale_sdk_flutter (0.0.1):
-    - AdWhaleSDK (= 1.0.4)
+    - AdWhaleSDK (= 1.0.7)
     - Flutter
-  - AdWhaleSDK (1.0.4):
-    - AdWhaleSDK/Base (= 1.0.4)
-  - AdWhaleSDK/Base (1.0.4):
+  - AdWhaleSDK (1.0.7):
+    - AdWhaleSDK/Base (= 1.0.7)
+  - AdWhaleSDK/Base (1.0.7):
     - AdWhaleSDK/Core
     - GoogleMobileAdsMediationFyber (= 8.4.4.1)
     - GoogleMobileAdsMediationInMobi (= 11.1.1.1)
@@ -21,7 +21,7 @@ PODS:
     - GoogleMobileAdsMediationPangle (= 7.9.0.6.0)
     - GoogleMobileAdsMediationUnity (= 4.16.6.1)
     - GoogleMobileAdsMediationVungle (= 7.7.0.0)
-  - AdWhaleSDK/Core (1.0.4):
+  - AdWhaleSDK/Core (1.0.7):
     - Google-Mobile-Ads-SDK (= 13.0.0)
     - GoogleMobileAdsMediationAppLovin (= 13.5.1.0)
   - AppLovinSDK (13.5.1)
@@ -108,7 +108,7 @@ DEPENDENCIES:
   - GoogleMobileAdsMediationVungle (= 7.7.0.0)
 
 SPEC REPOS:
-  https://github.com/dev-adwhale/AdWhaleSDK_iOS.git:
+  https://github.com/dev-adwhale/AdWhaleSDK_iOS:
     - AdWhaleSDK
   trunk:
     - Ads-Global
@@ -141,8 +141,8 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Ads-Global: fb1fa75ebbf100ab9ff216d81b71a05cf1a73675
-  adwhale_sdk_flutter: 8d5b94daf4b16458d7f93214daed2ad772ed3056
-  AdWhaleSDK: ecbec160aa85c07a4750f2648a5945d8622467d8
+  adwhale_sdk_flutter: b7fa979f14e391cf9f1c998a56b23993887965a1
+  AdWhaleSDK: 5ccde89701685425c181bb2078f016de0da2e390
   AppLovinSDK: 8d9af6c7617e4d35b38aa8393a3e9d161a74b230
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   Fyber_Marketplace_SDK: 37270b423a1684c3d5335db03f0c9798a31d8dd9

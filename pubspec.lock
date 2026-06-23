@@ -5,10 +5,10 @@ packages:
     dependency: "direct main"
     description:
       name: adwhale_sdk_flutter
-      sha256: b09b5691a5b582fdb411f5ac4f84d459fed3375346bfee6be211752f235741cc
+      sha256: c5b8e61df1d14dbb403a268d8242f49272e69ffaa57a78a7371a0f2e1ae83bbc
       url: "https://pub.dev"
     source: hosted
-    version: "2.7.3+1"
+    version: "2.7.4+0"
   async:
     dependency: transitive
     description:

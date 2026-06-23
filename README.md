@@ -2,19 +2,47 @@
 
 AdWhale Mediation SDK Flutter 샘플 프로젝트입니다.
 
+## Support platforms
+| Platform | Support |
+|----------|---------|
+| Android  | O       |
+| iOS      | O       |
+
+## Support Features
+| Features         | Support           |
+|------------------|-------------------|
+| SDK initialize   | O                 |
+| Banner           | O                 |
+| Interstitial     | O                 |
+| Rewarded         | O                 |
+| Native Template  | ⚠️(Android only)  |
+| Native Custom    | O                 |
+| App Open         | O                 |
+| App Exit Popup   | ⚠️(Android only)  |
+| Transition Popup | ⚠️(Android only)  |
+| Event Callback   | O                 |
+
+## Version
+샘플 프로젝트에 적용된 Flutter SDK 버전은 ```2.7.4+0``` 입니다.
+
+| Native SDK    | Flutter SDK |
+|---------------|-------------|
+| Android 2.7.4 | 2.7.4+0     |
+| iOS 1.0.7     | 2.7.4+0     |
+
 ## 시작하기
 
 ### 1. 프로젝트 클론 및 의존성 설치
 
 ```bash
-# 프로젝트 클론
+# 1. 프로젝트 클론
 git clone https://github.com/dev-adwhale/ADwhaleMediationSDK-Flutter.git
 cd ADwhaleMediationSDK-Flutter
 
-# Flutter 의존성 설치
+# 2. Flutter 의존성 설치
 flutter pub get
 
-# iOS 의존성 설치 (iOS 빌드 시에만 필요)
+# 3. iOS 의존성 설치 (iOS 빌드 시에만 필요)
 cd ios
 pod install
 cd ..
@@ -103,10 +131,11 @@ flutter run
 
 # iOS 실행
 flutter run
+```
 
-# 특정 디바이스에서 실행
-flutter devices
-flutter run -d <device-id>
+### 4. 환경 점검
+```sh
+flutter doctor
 ```
 
 ## 프로젝트 구조
@@ -121,13 +150,6 @@ flutter run -d <device-id>
   - 앱 오프닝 광고
 - `lib/transition_popup_ad_test_page.dart`: Android 전용 전환 팝업 광고 구현
 
-## 주요 기능
-
-- ✅ AdWhale SDK 2.7.3+1 연동
-- ✅ 모든 광고 타입 샘플 코드
-- ✅ COPPA, GDPR 설정 기능
-- ✅ 로거 설정 기능
-- ✅ ProGuard 설정 완료
 
 ## 요구사항
 
