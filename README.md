@@ -23,12 +23,12 @@ AdWhale Mediation SDK Flutter 샘플 프로젝트입니다.
 | Event Callback   | O                 |
 
 ## Version
-샘플 프로젝트에 적용된 Flutter SDK 버전은 ```2.7.7+0``` 입니다.
+샘플 프로젝트에 적용된 Flutter SDK 버전은 ```2.7.8+0``` 입니다.
 
 | Native SDK    | Flutter SDK |
 |---------------|-------------|
-| Android 2.7.7 | 2.7.7+0     |
-| iOS 1.0.8     | 2.7.7+0     |
+| Android 2.7.8 | 2.7.8+0     |
+| iOS 1.0.8     | 2.7.8+0     |
 
 ## 시작하기
 
